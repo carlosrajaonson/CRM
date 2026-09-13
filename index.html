@@ -245,10 +245,32 @@
     .kpi-value{font-size:21px;}
     thead th, tbody td{padding:9px 10px;font-size:12.5px;}
   }
+
+  /* ---------- Login gate ---------- */
+  #loginScreen{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:32px 28px;width:100%;max-width:360px;}
+  .login-card .brand{justify-content:center;margin-bottom:22px;font-size:19px;}
+  .login-card h2{margin:0 0 6px;font-size:17px;text-align:center;}
+  .login-card p.sub-login{text-align:center;color:var(--muted);font-size:13px;margin:0 0 22px;}
+  .login-error{color:var(--danger);font-size:12.5px;margin:-6px 0 14px;min-height:16px;}
+  .login-card .btn{width:100%;justify-content:center;}
+  #app.locked{display:none;}
 </style>
 </head>
 <body>
-<div id="app">
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand"><div class="brand-mark"></div>CRM Licorne</div>
+    <h2>Accès sécurisé</h2>
+    <p class="sub-login">Entrez le mot de passe pour accéder au CRM.</p>
+    <form id="loginForm">
+      <div class="field"><label>Mot de passe</label><input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"></div>
+      <div class="login-error" id="loginError"></div>
+      <button class="btn primary" type="submit">Se connecter</button>
+    </form>
+  </div>
+</div>
+<div id="app" class="locked">
   <div id="sidebarBackdrop"></div>
   <aside id="sidebar">
     <div class="brand"><div class="brand-mark"></div>CRM Licorne<button class="iconbtn sidebar-close" id="sidebarCloseBtn" title="Fermer">✕</button></div>
@@ -268,6 +290,7 @@
     <div class="sidebar-foot">
       <div><span id="connDot"></span><span id="connLabel">Connexion…</span></div>
       <div id="prospectCount" style="margin-top:4px;">—</div>
+      <button class="btn sm ghost" id="logoutBtn" style="margin-top:10px;padding-left:0;">↩ Se déconnecter</button>
     </div>
   </aside>
 
@@ -1286,6 +1309,7 @@ function initStaticHandlers(){
   $('#hamburgerBtn').onclick = openSidebar;
   $('#sidebarCloseBtn').onclick = closeSidebar;
   $('#sidebarBackdrop').onclick = closeSidebar;
+  $('#logoutBtn').onclick = ()=>{ sessionStorage.removeItem('crmlicorne_auth'); location.reload(); };
 }
 function openSidebar(){ $('#sidebar').classList.add('open'); $('#sidebarBackdrop').classList.add('show'); }
 function closeSidebar(){ $('#sidebar').classList.remove('open'); $('#sidebarBackdrop').classList.remove('show'); }
@@ -1295,12 +1319,42 @@ function applyTheme(t){
   localStorage.setItem('crmlicorne_theme', t);
 }
 
+/* ---------------- Auth gate ---------------- */
+const APP_PASSWORD = 'Angela#110';
+function showApp(){
+  $('#loginScreen').style.display = 'none';
+  $('#app').classList.remove('locked');
+}
+function tryLogin(pwd){
+  if(pwd === APP_PASSWORD){
+    sessionStorage.setItem('crmlicorne_auth', 'ok');
+    $('#loginError').textContent = '';
+    showApp();
+    startApp();
+    return true;
+  }
+  $('#loginError').textContent = 'Mot de passe incorrect.';
+  $('#loginPassword').value = '';
+  $('#loginPassword').focus();
+  return false;
+}
+
 /* ---------------- Init ---------------- */
-(async function init(){
+async function startApp(){
   applyTheme(localStorage.getItem('crmlicorne_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'));
   initStaticHandlers();
   await refreshData();
   setTimeout(checkRdvReminders, 500);
+}
+
+(function initAuth(){
+  $('#loginForm').onsubmit = (e)=>{ e.preventDefault(); tryLogin($('#loginPassword').value); };
+  if(sessionStorage.getItem('crmlicorne_auth') === 'ok'){
+    showApp();
+    startApp();
+  } else {
+    $('#loginPassword').focus();
+  }
 })();
 </script>
 </body>
